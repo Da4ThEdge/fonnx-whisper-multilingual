@@ -10,8 +10,12 @@
 - `language: Bengali` ➡️ `"<|bn|>": 50302`
 - `"<|notimestamps|>": 50363`
 
+🤗 List of all tokens for any Huggingface Whisper Models can be found at [added_tokens.json](https://huggingface.co/openai/whisper-small/resolve/main/added_tokens.json)
+
 👉 Changes are made to the following 4 files, where mainly `logits_processor` is being replaced by `decoder_input_ids`:
 - OrtWhisper.kt `android\src\main\kotlin\com\telosnex\fonnx\OrtWhisper.kt`
 - OrtWhisper.swift `ios\Classes\OrtWhisper.swift`
 - fonnx_whisper_worker.js `docs\fonnx_whisper_worker.js`
 - whisper_isolate.dart `lib\models\whisper\whisper_isolate.dart`
+
+### 📱 Here's a [demo Flutter app](https://github.com/Da4ThEdge/banglabridge) using this modified FONNX package for Bengali Speech Transcription.
