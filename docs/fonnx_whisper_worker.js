@@ -60,13 +60,14 @@ self.onmessage = async e => {
             const audioBytesFloat32 = new convertAudioBytesToFloats(audioBytes);
             const shape = [1, audioBytesFloat32.length];
             const audioStreamTensor = new ort.Tensor('float32', audioBytesFloat32, shape);
-            const maxLengthTensor = new ort.Tensor('int32', [200], [1]);
+            const maxLengthTensor = new ort.Tensor('int32', [448], [1]);
             const minLengthTensor = new ort.Tensor('int32', [0], [1]);
             const numBeamsTensor = new ort.Tensor('int32', [2], [1]);
             const numReturnSequencesTensor = new ort.Tensor('int32', [1], [1]);
             const lengthPenaltyTensor = new ort.Tensor('float32', [1.0], [1]);
             const repetitionPenaltyTensor = new ort.Tensor('float32', [1.0], [1]);
-            const logitsProcessorTensor = new ort.Tensor('int32', [0], [1]);
+            //const logitsProcessorTensor = new ort.Tensor('int32', [0], [1]);
+            const decoderInputIdsTensor = new ort.Tensor('int32', [50258, 50302, 50359, 50363], [1, 4]);
             const results = await session.run({
                 audio_pcm: audioStreamTensor,
                 max_length: maxLengthTensor,
@@ -75,7 +76,8 @@ self.onmessage = async e => {
                 num_return_sequences: numReturnSequencesTensor,
                 length_penalty: lengthPenaltyTensor,
                 repetition_penalty: repetitionPenaltyTensor,
-                logits_processor: logitsProcessorTensor
+                decoder_input_ids: decoderInputIdsTensor
+                //logits_processor: logitsProcessorTensor
             });
             const transcript = results.str.cpuData[0];
             const message = { messageId, action: 'inferenceResult', transcript };

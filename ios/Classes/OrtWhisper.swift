@@ -18,12 +18,13 @@ class OrtWhisper {
   ) {
 
     do {
-      let maxLengthData = try createORTValue(from: [200], elementType: .int32, shape: [1])
+      let maxLengthData = try createORTValue(from: [448], elementType: .int32, shape: [1])
       let minLengthData = try createORTValue(from: [0], elementType: .int32, shape: [1])
       let numBeamsData = try createORTValue(from: [2], elementType: .int32, shape: [1])
       let numReturnSequencesData = try createORTValue(from: [1], elementType: .int32, shape: [1])
       let lengthPenaltyData = try createORTValue(from: [1.0], elementType: .float, shape: [1])
-      let logitsProcessorData = try createORTValue(from: [0], elementType: .int32, shape: [1])
+      //let logitsProcessorData = try createORTValue(from: [0], elementType: .int32, shape: [1])
+      let decoderInputIdsData = try createORTValue(from: [50258, 50302, 50359, 50363], elementType: .int32, shape: [1,4])
       // The more exact construction here allows avoiding an error of "Repetition penalty must be > 0.0"
       var repetitionPenaltyBytes = [Float]()
       repetitionPenaltyBytes += Array(repeating: 1, count: 1)
@@ -50,7 +51,8 @@ class OrtWhisper {
           "num_return_sequences": numReturnSequencesData,
           "length_penalty": lengthPenaltyData,
           "repetition_penalty": repetitionPenaltyTensor,
-          "logits_processor": logitsProcessorData,
+          "decoder_input_ids": decoderInputIdsData
+          //"logits_processor": logitsProcessorData,
         ],
         outputNames: [outputName],
         runOptions: nil)

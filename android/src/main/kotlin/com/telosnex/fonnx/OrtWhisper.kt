@@ -42,13 +42,14 @@ class OrtWhisper(private val modelPath: String) {
         try {
             val ortEnv = model.ortEnv
             val session = model.ortSession
-            val maxLengthData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(200)), longArrayOf(1))
+            val maxLengthData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(448)), longArrayOf(1))
             val minLengthData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(0)), longArrayOf(1))
             val numBeamsData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(2)), longArrayOf(1))
             val numReturnSequencesData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(1)), longArrayOf(1))
             val lengthPenaltyData = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(floatArrayOf(1.0f)), longArrayOf(1))
             val repetitionPenaltyData = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(floatArrayOf(1.0f)), longArrayOf(1))
-            val logitsProcessorData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(0)), longArrayOf(1))
+            //val logitsProcessorData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(0)), longArrayOf(1))
+            val decoderInputIdsData = OnnxTensor.createTensor(ortEnv, IntBuffer.wrap(intArrayOf(50258, 50302, 50359, 50363)), longArrayOf(1, 4))
             val audioFloats = convertAudioBytesToFloats(audioBytes)
             val audioPcmTensor = OnnxTensor.createTensor(ortEnv, FloatBuffer.wrap(audioFloats), longArrayOf(1, audioFloats.size.toLong()))
 
@@ -60,7 +61,8 @@ class OrtWhisper(private val modelPath: String) {
                 "num_return_sequences" to numReturnSequencesData,
                 "length_penalty" to lengthPenaltyData,
                 "repetition_penalty" to repetitionPenaltyData,
-                "logits_processor" to logitsProcessorData
+                "decoder_input_ids" to decoderInputIdsData
+                //"logits_processor" to logitsProcessorData
             )
 
             val outputNames = setOf("str")

@@ -44,11 +44,15 @@ void whisperIsolateEntryPoint(SendPort mainSendPort) {
               message.ortExtensionsDylibPathOverride;
         }
         // Lazily create the Ort session if it's not already done.
-        ortSessionObjects ??=
-            createOrtSession(message.modelPath, includeOnnxExtensionsOps: true);
+        ortSessionObjects ??= createOrtSession(
+          message.modelPath,
+          includeOnnxExtensionsOps: true,
+        );
         // Perform the inference here using ortSessionObjects and message.tokens, retrieve result.
-        final result =
-            await _getTranscriptFfi(ortSessionObjects!, message.audioBytes);
+        final result = await _getTranscriptFfi(
+          ortSessionObjects!,
+          message.audioBytes,
+        );
         message.replyPort.send(result);
       } catch (e) {
         // Send the error message back to the main isolate.
@@ -150,7 +154,9 @@ class WhisperIsolateManager {
 }
 
 Future<String> _getTranscriptFfi(
-    OrtSessionObjects session, List<int> audioBytes) async {
+  OrtSessionObjects session,
+  List<int> audioBytes,
+) async {
   try {
     final sw = Stopwatch()..start();
 
@@ -167,7 +173,7 @@ Future<String> _getTranscriptFfi(
     objects.api.createInt32Tensor(
       maxLengthValue,
       memoryInfo: memoryInfo.value,
-      values: [200],
+      values: [448],
     );
     final minLengthValue = calloc<Pointer<OrtValue>>();
     objects.api.createInt32Tensor(
@@ -200,11 +206,19 @@ Future<String> _getTranscriptFfi(
       values: [1.0],
     );
     // 1 for include timestamps, 0 for not.
+    /*
     final logitsProcessorValue = calloc<Pointer<OrtValue>>();
     objects.api.createInt32Tensor(
       logitsProcessorValue,
       memoryInfo: memoryInfo.value,
       values: [0],
+    );
+    */
+    final decoderInputIdsValue = calloc<Pointer<OrtValue>>();
+    objects.api.createInt32Tensor(
+      decoderInputIdsValue,
+      memoryInfo: memoryInfo.value,
+      values: [50258, 50302, 50359, 50363],
     );
 
     const kInputCount = 8;
@@ -216,7 +230,8 @@ Future<String> _getTranscriptFfi(
     inputNamesPointer[4] = 'num_return_sequences'.toNativeUtf8().cast();
     inputNamesPointer[5] = 'length_penalty'.toNativeUtf8().cast();
     inputNamesPointer[6] = 'repetition_penalty'.toNativeUtf8().cast();
-    inputNamesPointer[7] = 'logits_processor'.toNativeUtf8().cast();
+    //inputNamesPointer[7] = 'logits_processor'.toNativeUtf8().cast();
+    inputNamesPointer[7] = 'decoder_input_ids'.toNativeUtf8().cast();
     final inputNames = inputNamesPointer.cast<Pointer<Char>>();
     final inputValues = calloc<Pointer<OrtValue>>(kInputCount);
     inputValues[0] = audioStreamValue.value;
@@ -226,7 +241,8 @@ Future<String> _getTranscriptFfi(
     inputValues[4] = numReturnSequencesValue.value;
     inputValues[5] = lengthPenaltyValue.value;
     inputValues[6] = repetitionPenaltyValue.value;
-    inputValues[7] = logitsProcessorValue.value;
+    //inputValues[7] = logitsProcessorValue.value;
+    inputValues[7] = decoderInputIdsValue.value;
     final outputNamesPointer = calloc<Pointer<Char>>();
     outputNamesPointer[0] = 'str'.toNativeUtf8().cast();
     final outputNames = outputNamesPointer.cast<Pointer<Char>>();
@@ -248,24 +264,37 @@ Future<String> _getTranscriptFfi(
     );
 
     final outputTensorDataPointer = calloc<Pointer<Void>>();
-    objects.api
-        .getTensorMutableData(outputValues.value, outputTensorDataPointer);
+    objects.api.getTensorMutableData(
+      outputValues.value,
+      outputTensorDataPointer,
+    );
 
     final tensorTypeAndShape = calloc<Pointer<OrtTensorTypeAndShapeInfo>>();
     objects.api.getTensorTypeAndShape(outputValues.value, tensorTypeAndShape);
     final tensorElementType = calloc<UnsignedInt>();
-    objects.api
-        .getTensorElementType(tensorTypeAndShape.value, tensorElementType);
-    assert(tensorElementType.value ==
-        ONNXTensorElementDataType.ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING.value);
+    objects.api.getTensorElementType(
+      tensorTypeAndShape.value,
+      tensorElementType,
+    );
+    assert(
+      tensorElementType.value ==
+          ONNXTensorElementDataType.ONNX_TENSOR_ELEMENT_DATA_TYPE_STRING.value,
+    );
 
     final stringLengthPtr = calloc<Size>();
-    objects.api
-        .getStringTensorElementLength(outputValues.value, 0, stringLengthPtr);
+    objects.api.getStringTensorElementLength(
+      outputValues.value,
+      0,
+      stringLengthPtr,
+    );
     final stringLength = stringLengthPtr.value;
     final stringPtr = calloc<Uint8>(stringLength);
     objects.api.getStringTensorElement(
-        outputValues.value, stringLength, 0, stringPtr.cast<Void>());
+      outputValues.value,
+      stringLength,
+      0,
+      stringPtr.cast<Void>(),
+    );
     final string = stringPtr.cast<Utf8>().toDartString(length: stringLength);
 
     sw.stop();
@@ -279,7 +308,8 @@ Future<String> _getTranscriptFfi(
     calloc.free(numReturnSequencesValue);
     calloc.free(lengthPenaltyValue);
     calloc.free(repetitionPenaltyValue);
-    calloc.free(logitsProcessorValue);
+    //calloc.free(logitsProcessorValue);
+    calloc.free(decoderInputIdsValue);
     calloc.free(inputNamesPointer);
     calloc.free(inputValues);
     calloc.free(outputNamesPointer);
